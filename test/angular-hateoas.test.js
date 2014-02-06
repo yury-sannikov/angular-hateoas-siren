@@ -1,3 +1,4 @@
+'use strict';
 describe("Hateoas Interface module", function () {
 
 	var getMockAngularResponseData = function () {
@@ -111,6 +112,16 @@ describe("Hateoas Interface module", function () {
 				if (key !== "links") expect(response[key]).toEqual(rawResponse[key]);
 			}
 
+		});
+
+		it("should have instance methods as action names", function () {
+
+		    var response = new HateoasInterface(getMockAngularResponseData());
+
+		    expect(typeof response.query_product_by_query_skip_limit).toBe("function");
+		    expect(typeof response.create_product).toBe("function");
+		    expect(typeof response.put_by_id_product).toBe("function");
+		    expect(typeof response.delete_by_id).toBe("function");
 		});
 
 		it("should have payload data from properties", function () {

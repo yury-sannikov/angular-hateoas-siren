@@ -1,3 +1,4 @@
+'use strict';
 /**
  * @module hateoas
  *
@@ -101,7 +102,7 @@ angular.module("hateoas", ["ngResource"])
 				globalHttpMethods = angular.copy(httpMethods);
 			},
 
-			$get: ["$injector", function ($injector) {
+			$get: ["$injector",  "$q", function ($injector) {
 
 				var arrayToObject = function (keyItem, valueItem, array) {
 					var obj = {};
@@ -120,11 +121,33 @@ angular.module("hateoas", ["ngResource"])
 					return obj;
 				};
 
-				var HateoasInterface = function (data) {
+				var httpMethodFucntions = {};
+
+				httpMethodFucntions['GET'] = function (data) {
+				};
+				httpMethodFucntions['POST'] = function (data) {
+			    };
+			    httpMethodFucntions['PUT'] = function (data) {
+			    };
+			    httpMethodFucntions['DELETE'] = function (data) {
+			    };
+			    httpMethodFucntions['PATCH'] = function (data) {
+			    };
+
+			    var HateoasInterface = function (data) {
 
 					// if links are present, consume object and convert links
 					if (data[linksKey]) {
 						data = angular.extend(this, data, { links: arrayToObject("rel", "href", data[linksKey]) });
+					}
+
+                    // Create instance method for each action
+					if (data[actionsKey]) {
+					    angular.forEach(data[actionsKey], function (item, index) {
+					        var methodName = item.name.replace("-", "_");
+					        var httpMethod = (item.method || "GET").toUpperCase();
+					        data[methodName] = httpMethodFucntions[httpMethod];
+					    });
 					}
 
 					// recursively consume all contained arrays or objects with links
