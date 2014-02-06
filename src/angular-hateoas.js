@@ -76,7 +76,8 @@ angular.module("hateoas", ["ngResource"])
 
 		// global Hateoas settings
 		var globalHttpMethods,
-			linksKey = "links";
+			linksKey = "links",
+		    actionsKey = "actions";
 
 		return {
 
@@ -86,6 +87,14 @@ angular.module("hateoas", ["ngResource"])
 
 			getLinksKey: function () {
 				return linksKey;
+			},
+
+			setActionsKey: function (newActionsKey) {
+			    actionsKey = newActionsKey || actionsKey;
+			},
+
+			getActionsKey: function () {
+			    return actionsKey;
 			},
 
 			setHttpMethods: function (httpMethods) {
