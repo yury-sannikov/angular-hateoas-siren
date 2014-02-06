@@ -2,26 +2,89 @@ describe("Hateoas Interface module", function () {
 
 	var getMockAngularResponseData = function () {
 		return angular.copy({
-			stringKey: "value",
-			intKey: 1,
-			objKey: {
-				value: "value"
-			},
-			arrayKey: [
-				"value1",
-				"value2"
-			],
-			links: [
-				{
-					rel: "self",
-					href: "http://root/self"
-				},
-				{
-					rel: "other",
-					href: "http://root/other"
-				}
-			]
-		});
+								"properties": {
+									"Id": 1,
+									"Name": "Item1",
+									"Price": 2.99
+								},
+								"links": [{
+									"rel": ["self"],
+									"href": "api/Product/1"
+								},
+								{
+									"rel": ["parent"],
+									"href": "api/Product"
+								},
+								{
+									"rel": ["get_product_by_name", "by_name"],
+									"href": "api/Product/Item1"
+								},
+								{
+									// Plain rel is not in Siren spec https://github.com/kevinswiber/siren
+									// Compatibilty testing
+									"rel": "get_productdetails_by_id",
+									"href": "api/Product/1/Details"
+								}],
+								"actions": [{
+									"name": "query_product_by_query_skip_limit",
+									"title": "Search for products by query and do pagination using skip and limit parameters",
+									"method": "GET",
+									"href": "api/Product?query=Item1&skip=:skip&limit=:limit",
+									"fields": [{
+										"name": "query",
+										"value": "Item1"
+									},
+									{
+										"name": "skip"
+									},
+									{
+										"name": "limit"
+									}]
+								},
+								{
+									"name": "create-product",
+									"title": "Create new product and return created object back with database generated ID",
+									"method": "POST",
+									"href": "api/Product",
+									"type": "application/x-www-form-urlencoded",
+									"fields": [{
+										"name": "Id",
+										"value": "1"
+									},
+									{
+										"name": "Name",
+										"value": "Item1"
+									},
+									{
+										"name": "Price",
+										"value": "2.99"
+									}]
+								},
+								{
+									"name": "put_by_id_product",
+									"title": "Modify existing product objects",
+									"method": "PUT",
+									"href": "api/Product/1",
+									"fields": [{
+										"name": "Id",
+										"value": "1"
+									},
+									{
+										"name": "Name",
+										"value": "Item1"
+									},
+									{
+										"name": "Price",
+										"value": "2.99"
+									}]
+								},
+								{
+									"name": "delete_by_id",
+									"title": "Delete product by ID",
+									"method": "DELETE",
+									"href": "api/Product/1"
+								}]
+							});
 	};
 
 	beforeEach(function () {
@@ -59,8 +122,19 @@ describe("Hateoas Interface module", function () {
 			expect(response.resource("self")).toBeTruthy();
 			expect(typeof response.resource("self").get).toBe("function");
 
-			expect(response.resource("other")).toBeTruthy();
-			expect(typeof response.resource("other").get).toBe("function");
+			expect(response.resource("parent")).toBeTruthy();
+			expect(typeof response.resource("parent").get).toBe("function");
+
+			expect(response.resource("get_product_by_name")).toBeTruthy();
+			expect(typeof response.resource("get_product_by_name").get).toBe("function");
+			
+			expect(response.resource("by_name")).toBeTruthy();
+			expect(typeof response.resource("by_name").get).toBe("function");
+			
+			expect(response.resource("get_productdetails_by_id")).toBeTruthy();
+			expect(typeof response.resource("get_productdetails_by_id").get).toBe("function");
+
+			
 
 			expect(response.resource).toThrow();
 			expect(function () {
