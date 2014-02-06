@@ -113,6 +113,16 @@ describe("Hateoas Interface module", function () {
 
 		});
 
+		it("should have payload data from properties", function () {
+
+		    var response = new HateoasInterface(getMockAngularResponseData());
+
+		    expect(response.properties.Id).toBe(1);
+		    expect(response.properties.Name).toBe("Item1");
+		    expect(response.properties.Price).toBe(2.99);
+
+	    });
+
 		it("should provide a resource for each link rel", function () {
 
 			var response = new HateoasInterface(getMockAngularResponseData());
