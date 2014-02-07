@@ -78,7 +78,8 @@ angular.module("hateoas", ["ngResource"])
 		// global Hateoas settings
 		var globalHttpMethods,
 			linksKey = "links",
-		    actionsKey = "actions";
+		    actionsKey = "actions",
+		    propertiesKey = "properties";
 
 		return {
 
@@ -191,7 +192,18 @@ angular.module("hateoas", ["ngResource"])
 					        data[methodName].metadata = metadataBuilder(item);
 					    });
 					}
-                    
+					delete data[actionsKey];
+					
+
+					if (data[propertiesKey]) {
+					    var props = data[propertiesKey];
+					    for (var prop in props) {
+					        data[prop] = props[prop];
+					    }
+					}
+
+					delete data[propertiesKey];
+
 					// recursively consume all contained arrays or objects with links
 					angular.forEach(data, function (value, key) {
 						if (key !== linksKey && angular.isObject(value) && (angular.isArray(value) || value[linksKey])) {

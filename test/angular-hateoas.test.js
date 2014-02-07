@@ -121,16 +121,16 @@ describe("Hateoas Interface module", function () {
 			HateoasInterface = _HateoasInterface_;
 		}));
 
-		it("should retain all original object properties other than links", function () {
+		it("should retain all original object properties other than links actions properties", function () {
 			
 			var response = new HateoasInterface(getMockAngularResponseData());
 			var rawResponse = getMockAngularResponseData();
 
 			expect(typeof response).toBe("object");
 
-			for (var key in rawResponse) {
-				if (key !== "links") expect(response[key]).toEqual(rawResponse[key]);
-			}
+			for (var key in rawResponse.properties) {
+			    expect(response[key]).toEqual(rawResponse.properties[key]);
+            }
 
 		});
 
@@ -153,9 +153,9 @@ describe("Hateoas Interface module", function () {
 
 		    var response = new HateoasInterface(getMockAngularResponseData());
 
-		    expect(response.properties.Id).toBe(1);
-		    expect(response.properties.Name).toBe("Item1");
-		    expect(response.properties.Price).toBe(2.99);
+		    expect(response.Id).toBe(1);
+		    expect(response.Name).toBe("Item1");
+		    expect(response.Price).toBe(2.99);
 
 	    });
 
