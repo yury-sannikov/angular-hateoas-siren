@@ -120,11 +120,36 @@ angular.module("hateoas", ["ngResource"])
 
 					return obj;
 				};
-                
+
+			    var fieldsChecker = function(meta, data) {
+			        angular.forEach(meta.fields, function(item, index) {
+			            if (typeof data[item.name] === 'undefined')
+			                throw "Parameter " + item.name + " does not exists in input object";
+			        });
+			    };
+
 				var actionFucntionBuilder = function (metadata) {
-				    var data = metadata;
+				    var meta = metadata;
+				    var resource = $injector.get("$resource");
 				    return function (query) {
-			        };
+				        fieldsChecker(meta, query);
+				        var actionResourse = new resource(meta.href,
+                            query,
+				            {
+				                invokeAction: {
+				                    method: meta.method,
+				                    isArray: meta.class[0] === 'query',
+				                    headers : {'Content-Type' : meta.type}
+				                }
+				            }
+                            );
+				        var result;
+				        if (meta.method !== "GET")
+				            result = actionResourse.$invokeAction(query, query);
+				        else
+				            result = actionResourse.$invokeAction(query);
+				        return result.$promise;
+				    };
 			    };
                 
 			    var metadataBuilder = function (metadata) {

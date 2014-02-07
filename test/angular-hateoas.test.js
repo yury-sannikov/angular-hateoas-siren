@@ -27,7 +27,8 @@ describe("Hateoas Interface module", function () {
 									"href": "api/Product/1/Details"
 								}],
 								"actions": [{
-									"name": "query_product_by_query_skip_limit",
+								    "name": "query_product_by_query_skip_limit",
+                                    "class": ["query"],
 									"title": "Search for products by query and do pagination using skip and limit parameters",
 									"method": "GET",
 									"href": "api/Product?query=Item1&skip=:skip&limit=:limit",
@@ -89,7 +90,26 @@ describe("Hateoas Interface module", function () {
 	};
 
 	beforeEach(function () {
-		module("ngResource");
+
+	    angular.module('ngResource').
+	        factory('$resource', [
+	             function() {
+	                 return function () {
+	                     return {
+	                         get : function()
+	                         {
+	                         },
+	                         $invokeAction: function() {
+	                             return {
+	                                 $promise : {}
+	                             };
+	                         }
+                         };
+
+	                 };
+	        }
+	        ]);
+
 		module("hateoas");
 	});
 
@@ -250,7 +270,8 @@ describe("Hateoas Interface module", function () {
 	        expect(typeof metadata).toBe("object");
 	        expect(metadata.name).toBe("query_product_by_query_skip_limit");
 	        expect(angular.isArray(metadata.class)).toBe(true);
-	        expect(metadata.class.length).toBe(0);
+	        expect(metadata.class.length).toBe(1);
+	        expect(metadata.class[0]).toBe("query");
 	        expect(metadata.method).toBe("GET");
 	        expect(metadata.href).toBe("api/Product?query=Item1&skip=:skip&limit=:limit");
 	        expect(metadata.title).toBe("Search for products by query and do pagination using skip and limit parameters");
@@ -285,7 +306,26 @@ describe("Hateoas Interface module", function () {
 	        expect(metadata.fields[2].value).toBe("2.99");
 	        expect(metadata.fields[2].type).toBe("text");
 	    });
-        
+
+	    it("should metadata information according SIREN specification", function () {
+
+	        var response = new HateoasInterface(getMockAngularResponseData());
+	        try {
+	            response.query_product_by_query_skip_limit({ fakeParam: 1 });
+	            expect("fake parameter should throw exceprion").toBe("exception");
+	        } catch (e) {
+	            expect(e).toBe("Parameter query does not exists in input object");
+	        }
+
+	        try {
+	            response.query_product_by_query_skip_limit({ query: "q", skip: "1", limit: 0 });
+	            expect(true).toBe(true);
+	        } catch (e) {
+	            expect("All params specified, no exception should occur, but").toBe(e);
+	        }
+
+	    });
+
 	});
 
 });
