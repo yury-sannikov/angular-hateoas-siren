@@ -102,7 +102,7 @@ angular.module("hateoas", ["ngResource"])
 				globalHttpMethods = angular.copy(httpMethods);
 			},
 
-			$get: ["$injector",  "$q", function ($injector) {
+			$get: ["$injector", function ($injector) {
 
 				var arrayToObject = function (keyItem, valueItem, array) {
 					var obj = {};
@@ -120,20 +120,37 @@ angular.module("hateoas", ["ngResource"])
 
 					return obj;
 				};
+                
+				var actionFucntionBuilder = function (metadata) {
+				    var data = metadata;
+				    return function (query) {
+			        };
+			    };
+                
+			    var metadataBuilder = function (metadata) {
+			        var data = metadata;
+			        return function () {
+			            var fieldsArray = [];
+			            if (data.fields && angular.isArray(data.fields))
+			                angular.forEach(data.fields, function(item, index) {
+			                    fieldsArray.push(
+			                        angular.extend(item, {
+			                            type: item.type || 'text',
+			                            value: item.value || ''
+			                        }));
+			                });
 
-				var httpMethodFucntions = {};
-
-				httpMethodFucntions['GET'] = function (data) {
-				};
-				httpMethodFucntions['POST'] = function (data) {
+			            return angular.extend(data,
+			            {
+			                'class': data['class'] || [],
+			                method: (data.method || 'GET').toUpperCase(),
+			                title: data.title || data.name,
+			                type: data.type || 'application/x-www-form-urlencoded',
+			                fields: fieldsArray
+			            });
+			        }
 			    };
-			    httpMethodFucntions['PUT'] = function (data) {
-			    };
-			    httpMethodFucntions['DELETE'] = function (data) {
-			    };
-			    httpMethodFucntions['PATCH'] = function (data) {
-			    };
-
+                
 			    var HateoasInterface = function (data) {
 
 					// if links are present, consume object and convert links
@@ -141,15 +158,15 @@ angular.module("hateoas", ["ngResource"])
 						data = angular.extend(this, data, { links: arrayToObject("rel", "href", data[linksKey]) });
 					}
 
-                    // Create instance method for each action
+                    // Create instance method and metadata provider for each action
 					if (data[actionsKey]) {
 					    angular.forEach(data[actionsKey], function (item, index) {
 					        var methodName = item.name.replace("-", "_");
-					        var httpMethod = (item.method || "GET").toUpperCase();
-					        data[methodName] = httpMethodFucntions[httpMethod];
+					        data[methodName] = actionFucntionBuilder(item);
+					        data[methodName].metadata = metadataBuilder(item);
 					    });
 					}
-
+                    
 					// recursively consume all contained arrays or objects with links
 					angular.forEach(data, function (value, key) {
 						if (key !== linksKey && angular.isObject(value) && (angular.isArray(value) || value[linksKey])) {
