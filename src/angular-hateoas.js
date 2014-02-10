@@ -112,17 +112,28 @@ angular.module("hateoas", ["ngResource"])
 							var key = item[keyItem];
 							if (angular.isArray(key))
 								angular.forEach(key, function (innerKey) {
-									obj[innerKey] = item[valueItem];
+									obj[innerKey] = { href: item[valueItem], original : key };
 								});
 							else
 								obj[item[keyItem]] = item[valueItem];
 						}
 					});
-
 					return obj;
 				};
 
-			    var fieldsChecker = function(meta, data) {
+			    var fixHref = function(href) {
+			        if (!href)
+			            return href;
+			        if (href.indexOf('/') != 0)
+			            return '/' + href;
+			        return href;
+			    };
+
+			    var fixFunctionName = function(fn) {
+			        return fn.replace(/-/g, '_');
+			    };
+
+				var fieldsChecker = function (meta, data) {
 			        angular.forEach(meta.fields, function(item, index) {
 			            if (typeof data[item.name] === 'undefined')
 			                throw "Parameter " + item.name + " does not exists in input object";
@@ -134,93 +145,126 @@ angular.module("hateoas", ["ngResource"])
 				    var resource = $injector.get("$resource");
 				    return function (query) {
 				        fieldsChecker(meta, query);
-				        var actionResourse = new resource(meta.href,
+				        var actionResourse = resource(fixHref(meta.href),
                             query,
 				            {
 				                invokeAction: {
 				                    method: meta.method,
-				                    isArray: meta.class[0] === 'query',
-				                    headers : {'Content-Type' : meta.type}
+				                    isArray: meta.class.indexOf('query') !== -1
 				                }
 				            }
                             );
 				        var result;
 				        if (meta.method !== "GET")
-				            result = actionResourse.$invokeAction(query, query);
+				            result = actionResourse.invokeAction(query, query);
 				        else
-				            result = actionResourse.$invokeAction(query);
+				            result = actionResourse.invokeAction(query);
 				        return result.$promise;
 				    };
 			    };
                 
-			    var metadataBuilder = function (metadata) {
-			        var data = metadata;
-			        return function () {
-			            var fieldsArray = [];
-			            if (data.fields && angular.isArray(data.fields))
-			                angular.forEach(data.fields, function(item, index) {
-			                    fieldsArray.push(
-			                        angular.extend(item, {
-			                            type: item.type || 'text',
-			                            value: item.value || ''
-			                        }));
-			                });
-
-			            return angular.extend(data,
-			            {
-			                'class': data['class'] || [],
-			                method: (data.method || 'GET').toUpperCase(),
-			                title: data.title || data.name,
-			                type: data.type || 'application/x-www-form-urlencoded',
-			                fields: fieldsArray
+			    var actionMetadataExtender = function (data) {
+			        var fieldsArray = [];
+			        if (data.fields && angular.isArray(data.fields))
+			            angular.forEach(data.fields, function(item, index) {
+			                fieldsArray.push(
+			                    angular.extend(item, {
+			                        type: item.type || 'text',
+			                        value: item.value || ''
+			                    }));
 			            });
-			        }
+
+			        return angular.extend(data,
+			        {
+			            'class': data['class'] || [],
+			            method: (data.method || 'GET').toUpperCase(),
+			            title: data.title || data.name,
+			            type: data.type || 'application/x-www-form-urlencoded',
+			            fields: fieldsArray
+			        });
 			    };
-                
+
+			    var linksBuilder = function (hrefOrObject) {
+			        return function () {
+			            var resource = $injector.get("$resource");
+			            var href, isQuery = false;
+			            if (angular.isObject(hrefOrObject)) {
+			                href = hrefOrObject.href;
+			                isQuery = hrefOrObject.original.indexOf("query") !== -1;
+			            } else {
+			                href = hrefOrObject;
+			            }
+			            
+			            return resource(fixHref(href), {})[isQuery ? "query" : "get"]();
+			        };
+			    };
+
+			    var queryLinksBuilder = function (linksArray) {
+			        var relLinks = arrayToObject("rel", "href", linksArray);
+			        delete relLinks.query;
+			        return function () {
+			            return relLinks;
+			        };
+			    };
+
+			    var queryActionsBuilder = function (actions) {
+			        var metadata = {};
+			        angular.forEach(actions, function (item, index) {
+			            metadata[item.name] = actionMetadataExtender(item);
+			        });
+			        return function() {
+			            return metadata;
+			        };
+			    };
+
 			    var HateoasInterface = function (data) {
 
-					// if links are present, consume object and convert links
+			        if (angular.isArray(data)) {
+			            // recursively consume all contained arrays or objects with links
+			            angular.forEach(data, function (value, key) {
+			                if (key !== linksKey && angular.isObject(value) && (angular.isArray(value) || value[linksKey])) {
+			                    data[key] = new HateoasInterface(value);
+			                }
+			            });
+
+			            return data;
+			        }
+			        data = angular.extend(this, data, {});
+
+			        data.queryLinks = queryLinksBuilder(data[linksKey]);
+
+			        // if links are present, consume object and convert links
 					if (data[linksKey]) {
-						data = angular.extend(this, data, { links: arrayToObject("rel", "href", data[linksKey]) });
+					    var relLinks = arrayToObject("rel", "href", data[linksKey]);
+					    for (var key in relLinks) {
+					        if (key == 'query') continue;
+					        data[fixFunctionName(key)] = linksBuilder(relLinks[key]);
+                        }
+					    delete data[linksKey];
 					}
+
+					data.queryActions = queryActionsBuilder(data[actionsKey]);
 
                     // Create instance method and metadata provider for each action
 					if (data[actionsKey]) {
 					    angular.forEach(data[actionsKey], function (item, index) {
-					        var methodName = item.name.replace("-", "_");
-					        data[methodName] = actionFucntionBuilder(item);
-					        data[methodName].metadata = metadataBuilder(item);
+					        data[fixFunctionName(item.name)] = actionFucntionBuilder(item);
 					    });
+					    delete data[actionsKey];
 					}
-					delete data[actionsKey];
-					
 
 					if (data[propertiesKey]) {
 					    var props = data[propertiesKey];
 					    for (var prop in props) {
+					        if (data[prop])
+					            throw "Response properties object contains conflicting item '" + prop + "'";
 					        data[prop] = props[prop];
 					    }
-					}
-
-					delete data[propertiesKey];
-
-					// recursively consume all contained arrays or objects with links
-					angular.forEach(data, function (value, key) {
-						if (key !== linksKey && angular.isObject(value) && (angular.isArray(value) || value[linksKey])) {
-							data[key] = new HateoasInterface(value);
-						}
-					});
+					    delete data[propertiesKey];
+                    }
 
 					return data;
 
-				};
-
-				HateoasInterface.prototype.resource = function (linkName, bindings, httpMethods) {
-					if (linkName in this[linksKey]) {
-						return $injector.get("$resource")(this[linksKey][linkName], bindings, httpMethods || globalHttpMethods);
-					} else {
-						throw "Link '" + linkName + "' is not present in object.";
-					}
 				};
 
 				return HateoasInterface;

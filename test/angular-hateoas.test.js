@@ -44,7 +44,7 @@ describe("Hateoas Interface module", function () {
 									}]
 								},
 								{
-									"name": "create-product",
+									"name": "create-product-test",
 									"title": "Create new product and return created object back with database generated ID",
 									"method": "POST",
 									"href": "api/Product",
@@ -98,8 +98,12 @@ describe("Hateoas Interface module", function () {
 	                     return {
 	                         get : function()
 	                         {
+	                             return true;
 	                         },
-	                         $invokeAction: function() {
+	                         query : function() {
+	                             return true;
+	                         },
+	                         invokeAction: function() {
 	                             return {
 	                                 $promise : {}
 	                             };
@@ -139,14 +143,15 @@ describe("Hateoas Interface module", function () {
 		    var response = new HateoasInterface(getMockAngularResponseData());
 
 		    expect(typeof response.query_product_by_query_skip_limit).toBe("function");
-		    expect(typeof response.create_product).toBe("function");
+		    expect(typeof response.create_product_test).toBe("function");
 		    expect(typeof response.put_by_id_product).toBe("function");
 		    expect(typeof response.delete_by_id).toBe("function");
 
-		    expect(typeof response.query_product_by_query_skip_limit.metadata).toBe("function");
-		    expect(typeof response.create_product.metadata).toBe("function");
-		    expect(typeof response.put_by_id_product.metadata).toBe("function");
-		    expect(typeof response.delete_by_id.metadata).toBe("function");
+		    var actions = response.queryActions();
+		    expect(actions.query_product_by_query_skip_limit.name).toBe("query_product_by_query_skip_limit");
+		    expect(actions["create-product-test"].name).toBe("create-product-test");
+		    expect(actions.put_by_id_product.name).toBe("put_by_id_product");
+		    expect(actions.delete_by_id.name).toBe("delete_by_id");
 		});
 
 		it("should have payload data from properties", function () {
@@ -163,29 +168,15 @@ describe("Hateoas Interface module", function () {
 
 			var response = new HateoasInterface(getMockAngularResponseData());
 
-			expect(typeof response.resource).toBe("function");
+			expect(response.self).toBeTruthy();
 
-			expect(response.resource("self")).toBeTruthy();
-			expect(typeof response.resource("self").get).toBe("function");
+			expect(response.parent).toBeTruthy();
 
-			expect(response.resource("parent")).toBeTruthy();
-			expect(typeof response.resource("parent").get).toBe("function");
-
-			expect(response.resource("get_product_by_name")).toBeTruthy();
-			expect(typeof response.resource("get_product_by_name").get).toBe("function");
+			expect(response.get_product_by_name).toBeTruthy();
 			
-			expect(response.resource("by_name")).toBeTruthy();
-			expect(typeof response.resource("by_name").get).toBe("function");
+			expect(response.by_name).toBeTruthy();
 			
-			expect(response.resource("get_productdetails_by_id")).toBeTruthy();
-			expect(typeof response.resource("get_productdetails_by_id").get).toBe("function");
-
-			
-
-			expect(response.resource).toThrow();
-			expect(function () {
-				response.resource("invalid link");
-			}).toThrow();
+			expect(response.get_productdetails_by_id).toBeTruthy();
 
 		});
 
@@ -199,19 +190,6 @@ describe("Hateoas Interface module", function () {
 			expect(response[1] instanceof HateoasInterface).toBe(true);
 
 		});
-
-		it("should recursively process nested objects", function () {
-
-			var response = new HateoasInterface({
-				nestedObj1: getMockAngularResponseData(),
-				nestedObj2: getMockAngularResponseData()
-			});
-
-			expect(response.nestedObj1 instanceof HateoasInterface).toBe(true);
-			expect(response.nestedObj2 instanceof HateoasInterface).toBe(true);
-
-		});
-
 	});
 
 	describe("transformAllResponses method", function () {
@@ -265,9 +243,8 @@ describe("Hateoas Interface module", function () {
 	        var response = new HateoasInterface(getMockAngularResponseData());
 
 	        var metadata;
-	        metadata = response.query_product_by_query_skip_limit.metadata();
+	        metadata = response.queryActions()["query_product_by_query_skip_limit"];
 
-	        expect(typeof metadata).toBe("object");
 	        expect(metadata.name).toBe("query_product_by_query_skip_limit");
 	        expect(angular.isArray(metadata.class)).toBe(true);
 	        expect(metadata.class.length).toBe(1);
@@ -286,9 +263,10 @@ describe("Hateoas Interface module", function () {
 	        expect(metadata.fields[2].name).toBe("limit");
 	        expect(metadata.fields[2].value).toBe("");
 	        expect(metadata.fields[2].type).toBe("text");
-	        metadata = response.create_product.metadata();
+
+	        metadata = response.queryActions()["create-product-test"];
 	        expect(typeof metadata).toBe("object");
-	        expect(metadata.name).toBe("create-product");
+	        expect(metadata.name).toBe("create-product-test");
 	        expect(angular.isArray(metadata.class)).toBe(true);
 	        expect(metadata.class.length).toBe(0);
 	        expect(metadata.method).toBe("POST");
@@ -324,8 +302,20 @@ describe("Hateoas Interface module", function () {
 	            expect("All params specified, no exception should occur, but").toBe(e);
 	        }
 
-	    });
 
+	    });
+	    it("conflicting property should throw", function() {
+
+	        var mock = getMockAngularResponseData();
+	        mock.properties.queryActions = "queryActions";
+
+	        try {
+	            new HateoasInterface(mock);
+	            expect("properties.links should throw exception").toBe("exception");
+	        } catch (e) {
+	            expect(e).toBe("Response properties object contains conflicting item 'queryActions'");
+	        }
+	    });
 	});
 
 });
