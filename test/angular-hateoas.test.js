@@ -13,7 +13,7 @@ describe("Hateoas Interface module", function () {
 									"href": "api/Product/1"
 								},
 								{
-									"rel": ["parent"],
+									"rel": ["parent","__query"],
 									"href": "api/Product"
 								},
 								{
@@ -28,7 +28,7 @@ describe("Hateoas Interface module", function () {
 								}],
 								"actions": [{
 								    "name": "query_product_by_query_skip_limit",
-                                    "class": ["query"],
+                                    "class": ["__query"],
 									"title": "Search for products by query and do pagination using skip and limit parameters",
 									"method": "GET",
 									"href": "api/Product?query=Item1&skip=:skip&limit=:limit",
@@ -142,6 +142,7 @@ describe("Hateoas Interface module", function () {
 
 		    var response = new HateoasInterface(getMockAngularResponseData());
 
+		    expect(typeof response.__query).toBe("undefined");
 		    expect(typeof response.query_product_by_query_skip_limit).toBe("function");
 		    expect(typeof response.create_product_test).toBe("function");
 		    expect(typeof response.put_by_id_product).toBe("function");
@@ -248,7 +249,7 @@ describe("Hateoas Interface module", function () {
 	        expect(metadata.name).toBe("query_product_by_query_skip_limit");
 	        expect(angular.isArray(metadata.class)).toBe(true);
 	        expect(metadata.class.length).toBe(1);
-	        expect(metadata.class[0]).toBe("query");
+	        expect(metadata.class[0]).toBe("__query");
 	        expect(metadata.method).toBe("GET");
 	        expect(metadata.href).toBe("api/Product?query=Item1&skip=:skip&limit=:limit");
 	        expect(metadata.title).toBe("Search for products by query and do pagination using skip and limit parameters");
