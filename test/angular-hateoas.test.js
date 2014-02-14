@@ -239,7 +239,25 @@ describe("Hateoas Interface module", function () {
 
 		});
         
-	    it("should metadata information according SIREN specification", function() {
+	    it("should provide Links metadata information according SIREN specification", function() {
+	        var response = new HateoasInterface(getMockAngularResponseData());
+
+	        var metadata;
+	        metadata = response.queryLinks();
+	        expect(metadata.self.href).toBe("api/Product/1");
+	        expect(metadata.self.isQuery).toBe(false);
+
+	        expect(metadata.parent.href).toBe("api/Product");
+	        expect(metadata.parent.isQuery).toBe(true);
+
+	        expect(metadata.get_product_by_name.href).toBe("api/Product/Item1");
+	        expect(metadata.get_product_by_name.isQuery).toBe(false);
+
+	        expect(metadata.by_name.href).toBe("api/Product/Item1");
+	        expect(metadata.by_name.isQuery).toBe(false);
+	    });
+
+	    it("should provide Actions metadata information according SIREN specification", function() {
 	        //https://github.com/kevinswiber/siren
 	        var response = new HateoasInterface(getMockAngularResponseData());
 
