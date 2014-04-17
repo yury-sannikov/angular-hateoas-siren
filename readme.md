@@ -1,3 +1,5 @@
+:exclamation: This libary no longer maintanied. Please consider [AngularHypermedia](https://github.com/yury-sannikov/AngularHypermedia)
+
 angular-hateoas
 ===============
 
